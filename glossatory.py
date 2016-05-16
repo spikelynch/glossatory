@@ -7,8 +7,8 @@ import torchrnn
 class Glossatory(TwitterBot):
 
     def glossolalia(self):
-        return torchrnn.generate_lines(model=self.cf['model'])
-        
+        lines = torchrnn.generate_lines(temperature=self.cf['temperature'], model=self.cf['model'])
+        return lines[0]
         
         
 if __name__ == '__main__':
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     g.configure()
     tweet = g.glossolalia()
     if tweet:
-        bot.post(tweet)
+        g.post(tweet)
     else:
         print("Something went wrong")
 
