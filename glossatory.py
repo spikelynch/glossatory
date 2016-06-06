@@ -2,14 +2,22 @@
 
 from twitterbot import TwitterBot
 import torchrnn
-import time, random
+import time, random, os.path
 
 
 class Glossatory(TwitterBot):
 
+
+    # note - filter lines to make sure that they include a definition
+    # before doing the random choice.
     def glossolalia(self):
-        lines = torchrnn.generate_lines(temperature=self.cf['temperature'], model=self.cf['model'])
-        return lines[0]
+        lines = torchrnn.generate_lines(n=self.cf['sample'], temperature=self.cf['temperature'], model=self.cf['model'])
+        log = os.path.join(self.cf['logs'], str(time.time())) + '.log'
+        with open(log, 'wt') as f:
+                for line in lines:
+                        f.write(line)
+                        f.write("\n")
+        return random.choice(lines[2:-1])
 
     def random_pause(self):
         if 'pause' in self.cf:
