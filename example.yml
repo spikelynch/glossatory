@@ -1,11 +1,15 @@
 
 # config for glossatory
 
-api_key:            
-api_secret:         
-oauth_token:        
-oauth_token_secret: 
+api_key:
+api_secret:
+oauth_token:
+oauth_token_secret:
 
-lastfile: last.txt
-textfile: glosses.txt
+model: /home/pi/torch/torch-rnn/cv/checkpoint_215100.t7
+sample: 100 
+temperature: 0.92 
+pause: 1200
+logs: /home/pi/bots/glossatory/logs
+accept: "^[A-Z ]+: [a-z(]+.*[a-z][a-z][a-z)]$"
 
