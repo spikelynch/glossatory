@@ -8,6 +8,9 @@ oauth_token_secret:
 
 model: /home/pi/torch/torch-rnn/cv/checkpoint_215100.t7
 sample: 100 
+t_period: 20
+t_0: 0.45
+t_amp: 0.15 
 temperature: 0.92 
 pause: 1200
 logs: /home/pi/bots/glossatory/logs
