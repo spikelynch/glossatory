@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from twitterbot import TwitterBot
+from botclient import Bot
 import torchrnn
 import time, math, random, os.path, re
 
 
-class Glossatory(TwitterBot):
+class Glossatory(Bot):
 
 
     # note - filter lines to make sure that they include a definition
