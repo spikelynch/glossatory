@@ -30,7 +30,7 @@ class Glossatory(TwitterBot):
         return result
 
     def sine_temp(self):
-        p = self.cf['t_period'] * 60.0 * 60.0
+        p = float(self.cf['t_period']) * 60.0 * 60.0
         v = math.sin(time.time() / p)
         return self.cf['t_0'] + v * self.cf['t_amp']
         
