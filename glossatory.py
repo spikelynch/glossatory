@@ -7,9 +7,6 @@ import time, math, random, os.path, re
 
 class Glossatory(Bot):
 
-
-    # note - filter lines to make sure that they include a definition
-    # before doing the random choice.
     def glossolalia(self):
         result = None
         loop = 10
@@ -17,18 +14,25 @@ class Glossatory(Bot):
         t = self.sine_temp()
         print("Temperature = {}".format(t))
         while not result and loop > 0:
-                lines = torchrnn.generate_lines(n=self.cf['sample'], temperature=t, model=self.cf['model'])
-                lines = [ l for l in lines if accept_re.match(l) ]
+            lines = torchrnn.generate_lines(
+                n=self.cf['sample'],
+                temperature=t,
+                model=self.cf['model'],
+                length=self.api.char_limit
+                )
+            lines = [ l for l in lines if accept_re.match(l) ]
+            if 'logs' in self.cf:
                 log = os.path.join(self.cf['logs'], str(time.time())) + '.log'
                 with open(log, 'wt') as f:
-                        for line in lines:
-                                f.write(line)
-                                f.write("\n")
-                if len(lines) > 5:
-                    result = random.choice(lines[2:-2])
+                    for line in lines:
+                        f.write(line)
+                        f.write("\n")
+                        f.write("Length = {}\n\n".format(len(line)))
+            if len(lines) > 5:
+                result = random.choice(lines[2:-2])
                 loop = loop - 1
         return result
-
+    
     def sine_temp(self):
         p = self.cf['t_period'] * 60.0 * 60.0
         v = math.sin(time.time() / p)
