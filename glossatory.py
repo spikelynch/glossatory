@@ -4,23 +4,26 @@ from botclient import Bot
 import torchrnn
 import time, math, random, os.path, re
 
+DEF_MIN = 10
 
 class Glossatory(Bot):
 
     def glossolalia(self):
         result = None
         loop = 10
-        accept_re = re.compile(self.cf['accept'])
         t = self.sine_temp()
-        print("Temperature = {}".format(t))
+        min_length = DEF_MIN
+        if 'minimum' in self.cf:
+            min_length = self.cf['minimum']
         while not result and loop > 0:
             lines = torchrnn.generate_lines(
                 n=self.cf['sample'],
                 temperature=t,
                 model=self.cf['model'],
-                length=self.api.char_limit
+                max_length=self.api.char_limit,
+                min_length=min_length
                 )
-            lines = [ l for l in lines if accept_re.match(l) ]
+            lines = self.clean_glosses(lines)
             if 'logs' in self.cf:
                 log = os.path.join(self.cf['logs'], str(time.time())) + '.log'
                 with open(log, 'wt') as f:
@@ -28,10 +31,24 @@ class Glossatory(Bot):
                         f.write(line)
                         f.write("\n")
                         f.write("Length = {}\n\n".format(len(line)))
+            print("Got {} lines on loop {}".format(len(lines), loop))
             if len(lines) > 5:
                 result = random.choice(lines[2:-2])
                 loop = loop - 1
         return result
+
+    def clean_glosses(self, lines):
+        accept_re = re.compile(self.cf['accept'])
+        unbalanced_re = re.compile('\([^)]+$')
+        cleaned = []
+        for line in [ l for l in lines if accept_re.match(l) ]:
+            if unbalanced_re.search(line):
+                line += ')'
+                if len(line) <= self.api.char_limit:
+                    cleaned.append(line)
+            else:
+                cleaned.append(line)
+        return cleaned
     
     def sine_temp(self):
         p = float(self.cf['t_period']) * 60.0 * 60.0
