@@ -8,10 +8,9 @@ DEF_MIN = 10
 
 class Glossatory(Bot):
 
-    def glossolalia(self):
+    def glossolalia(self, t):
         result = None
         loop = 10
-        t = self.sine_temp()
         min_length = DEF_MIN
         if 'minimum' in self.cf:
             min_length = self.cf['minimum']
@@ -25,13 +24,12 @@ class Glossatory(Bot):
                 )
             lines = self.clean_glosses(lines)
             if 'logs' in self.cf:
-                log = os.path.join(self.cf['logs'], str(time.time())) + '.log'
+                log = self.logfile(t)
+                print("Log = {}".format(log))
                 with open(log, 'wt') as f:
                     for line in lines:
                         f.write(line)
-                        f.write("\n")
-                        f.write("Length = {}\n\n".format(len(line)))
-            print("Got {} lines on loop {}".format(len(lines), loop))
+                        f.write("\nt = {} l = {}\n".format(t, len(line)))
             if len(lines) > 5:
                 result = random.choice(lines[2:-2])
                 loop = loop - 1
@@ -41,15 +39,20 @@ class Glossatory(Bot):
         accept_re = re.compile(self.cf['accept'])
         unbalanced_re = re.compile('\([^)]+$')
         cleaned = []
-        for line in [ l for l in lines if accept_re.match(l) ]:
-            if unbalanced_re.search(line):
-                line += ')'
-                if len(line) <= self.api.char_limit:
+        for raw in lines:
+            m = accept_re.match(raw)
+            if m:
+                word = m.group(1)
+                defn = m.group(2)
+                line = word.upper().replace('_', ' ') + ": " + defn
+                if unbalanced_re.search(line):
+                    line += ')'
+                    if len(line) <= self.api.char_limit:
+                        cleaned.append(line)
+                else:
                     cleaned.append(line)
-            else:
-                cleaned.append(line)
         return cleaned
-    
+
     def sine_temp(self):
         p = float(self.cf['t_period']) * 60.0 * 60.0
         v = math.sin(time.time() / p)
@@ -61,15 +64,34 @@ class Glossatory(Bot):
             print("Waiting for {}".format(pause))
             time.sleep(pause)
 
-        
+    def spectrum(self):
+        sv = self.cf['spectrum'].split()
+        self.tstamp = str(time.time())
+        low = float(sv[0])
+        high = float(sv[1])
+        steps = int(sv[2])
+        for i in range(steps):
+            t = low + (high - low) * (i / (steps - 1))
+            tweet = g.glossolalia(t)
+            print("{}: {}".format(t, tweet))
+
+    def logfile(self, t):
+        if 'spectrum' in self.cf:
+            return os.path.join(self.cf['logs'], self.tstamp + '.' + str(t) + '.log')
+        else:
+            return os.path.join(self.cf['logs'], str(time.time())) + '.log'
         
 if __name__ == '__main__':
     g = Glossatory()
     g.configure()
-    tweet = g.glossolalia()
-    g.random_pause()
-    if tweet:
-        g.post(tweet)
+    if g.cf['spectrum']:
+        g.spectrum()
     else:
-        print("Something went wrong")
+        t = g.sine_temp()
+        tweet = g.glossolalia(t)
+        g.random_pause()
+        if tweet:
+            g.post(tweet)
+        else:
+            print("Something went wrong")
 
