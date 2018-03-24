@@ -84,7 +84,7 @@ class Glossatory(Bot):
 if __name__ == '__main__':
     g = Glossatory()
     g.configure()
-    if g.cf['spectrum']:
+    if 'spectrum' in g.cf:
         g.spectrum()
     else:
         t = g.sine_temp()
