@@ -2,9 +2,10 @@
 
 from botclient import Bot
 import torchrnn
-import time, math, random, os.path, re
+import time, math, random, os.path, re, sys
 
 DEF_MIN = 10
+DEFAULT_COLON = ': '
 
 class Glossatory(Bot):
 
@@ -33,24 +34,32 @@ class Glossatory(Bot):
             if len(lines) > 5:
                 result = random.choice(lines[2:-2])
                 loop = loop - 1
+            else:
+                print("Empty result set")
         return result
 
     def clean_glosses(self, lines):
         accept_re = re.compile(self.cf['accept'])
         unbalanced_re = re.compile('\([^)]+$')
+        if 'colon' in self.cf:
+            colon = self.cf['colon']
+        else:
+            colon = DEFAULT_COLON
         cleaned = []
         for raw in lines:
             m = accept_re.match(raw)
             if m:
                 word = m.group(1)
                 defn = m.group(2)
-                line = word.upper().replace('_', ' ') + ": " + defn
+                line = word.upper().replace('_', ' ') + colon + defn
                 if unbalanced_re.search(line):
                     line += ')'
                     if len(line) <= self.api.char_limit:
                         cleaned.append(line)
                 else:
                     cleaned.append(line)
+            else:
+                print("No match: {}".format(raw))
         return cleaned
 
     def sine_temp(self):
