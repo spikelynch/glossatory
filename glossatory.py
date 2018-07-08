@@ -100,7 +100,10 @@ if __name__ == '__main__':
         tweet = g.glossolalia(t)
         g.random_pause()
         if tweet:
-            g.post(tweet)
+            if 'content_warning' in g.cf:
+                g.post(tweet, { 'spoiler_text': g.cf['content_warning'] })
+            else:
+                g.post(tweet)
         else:
             print("Something went wrong")
 
