@@ -28,9 +28,9 @@ class Glossatory(Bot):
                 log = self.logfile(t)
                 print("Log = {}".format(log))
                 with open(log, 'wt') as f:
-                    for line in lines:
-                        f.write(line)
-                        f.write("\nt = {} l = {}\n".format(t, len(line)))
+                    for w, d in lines:
+                        f.write(w + ': ' + d)
+                        f.write("\nt = {}\n".format(t))
             if len(lines) > 5:
                 result = random.choice(lines[2:-2])
                 loop = loop - 1
@@ -42,22 +42,19 @@ class Glossatory(Bot):
         accept_re = re.compile(self.cf['accept'])
         unbalanced_re = re.compile('\([^)]+$')
         if 'colon' in self.cf:
-            colon = self.cf['colon']
+            self.colon = self.cf['colon']
         else:
-            colon = DEFAULT_COLON
+            self.colon = DEFAULT_COLON
         cleaned = []
         for raw in lines:
             m = accept_re.match(raw)
             if m:
-                word = m.group(1)
+                word = m.group(1).upper().replace('_', ' ')
                 defn = m.group(2)
-                line = word.upper().replace('_', ' ') + colon + defn
-                if unbalanced_re.search(line):
-                    line += ')'
-                    if len(line) <= self.api.char_limit:
-                        cleaned.append(line)
-                else:
-                    cleaned.append(line)
+                if unbalanced_re.search(defn):
+                    defn += ')'
+                if len(word + self.colon + defn) <= self.api.char_limit:
+                    cleaned.append(( word, defn ))
             else:
                 print("No match: {}".format(raw))
         return cleaned
@@ -97,13 +94,13 @@ if __name__ == '__main__':
         g.spectrum()
     else:
         t = g.sine_temp()
-        tweet = g.glossolalia(t)
+        defn = g.glossolalia(t)
         g.random_pause()
-        if tweet:
+        options = {}
+        if defn:
             if 'content_warning' in g.cf:
-                g.post(tweet, { 'spoiler_text': g.cf['content_warning'] })
-            else:
-                g.post(tweet)
+                options['spoiler_text'] = g.cf['content_warning'].format(defn[0])
+            g.post(defn[0] + g.colon + defn[1], options)
         else:
             print("Something went wrong")
 
