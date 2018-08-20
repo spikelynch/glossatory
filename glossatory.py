@@ -40,6 +40,7 @@ class Glossatory(Bot):
 
     def clean_glosses(self, lines):
         accept_re = re.compile(self.cf['accept'])
+        reject_re = re.compile(self.cf['reject'], re.IGNORECASE)
         unbalanced_re = re.compile('\([^)]+$')
         if 'colon' in self.cf:
             self.colon = self.cf['colon']
@@ -47,16 +48,17 @@ class Glossatory(Bot):
             self.colon = DEFAULT_COLON
         cleaned = []
         for raw in lines:
-            m = accept_re.match(raw)
-            if m:
-                word = m.group(1).upper().replace('_', ' ')
-                defn = m.group(2)
-                if unbalanced_re.search(defn):
-                    defn += ')'
-                if len(word + self.colon + defn) <= self.api.char_limit:
-                    cleaned.append(( word, defn ))
-            else:
-                print("No match: {}".format(raw))
+            if not reject_re.match(raw):
+                m = accept_re.match(raw)
+                if m:
+                    word = m.group(1).upper().replace('_', ' ')
+                    defn = m.group(2)
+                    if unbalanced_re.search(defn):
+                        defn += ')'
+                    if len(word + self.colon + defn) <= self.api.char_limit:
+                        cleaned.append(( word, defn ))
+                else:
+                    print("No match: {}".format(raw))
         return cleaned
 
     def sine_temp(self):
