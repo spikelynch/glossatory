@@ -65,6 +65,11 @@ class Glossatory(Bot):
         p = float(self.cf['t_period']) * 60.0 * 60.0
         v = math.sin(time.time() / p)
         return self.cf['t_0'] + v * self.cf['t_amp']
+
+    def rand_temp(self):
+        t0 = self.cf['t_0']
+        tamp = self.cf['t_amp']
+        return t0 - tamp + 2 * random.random() * tamp 
         
     def random_pause(self):
         if 'pause' in self.cf:
@@ -95,7 +100,7 @@ if __name__ == '__main__':
     if 'spectrum' in g.cf:
         g.spectrum()
     else:
-        t = g.sine_temp()
+        t = g.rand_temp()
         defn = g.glossolalia(t)
         g.random_pause()
         options = {}
