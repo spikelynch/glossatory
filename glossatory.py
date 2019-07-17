@@ -2,7 +2,7 @@
 
 from botclient import Bot
 import torchrnn
-import time, math, random, os.path, re, sys
+import time, math, random, os.path, re, sys, shutil
 
 DEF_MIN = 10
 DEFAULT_COLON = ': '
@@ -29,23 +29,36 @@ class Glossatory(Bot):
                 print("Log = {}".format(log))
                 with open(log, 'wt') as f:
                     for w, d in lines:
-                        f.write(w + ': ' + d)
-                        f.write("\nt = {}\n".format(t))
+                        f.write(w + ': ' + d + "\n")
+                if 'latest' in self.cf:
+                    latest = os.path.join(self.cf['logs'], self.cf['latest'])
+                    shutil.copy(log, latest)
             if len(lines) > 5:
-                result = random.choice(lines[2:-2])
+                result = random.choice(lines[:-2])
                 loop = loop - 1
             else:
                 print("Empty result set")
         return result
 
+    def reuse_lines(self):
+        results = []
+        with open(self.cf['lines'], 'r') as f:
+            lines = f.readlines()
+            fre = re.compile(self.cf['filter'])
+            for l in lines:
+                m = fre.match(l)
+                if m:
+                    results.append(( m.group(1), m.group(2) ))
+        if results:
+            return random.choice(results)
+        else:
+            return None
+         
+
     def clean_glosses(self, lines):
         accept_re = re.compile(self.cf['accept'])
         reject_re = re.compile(self.cf['reject'], re.IGNORECASE)
         unbalanced_re = re.compile('\([^)]+$')
-        if 'colon' in self.cf:
-            self.colon = self.cf['colon']
-        else:
-            self.colon = DEFAULT_COLON
         cleaned = []
         for raw in lines:
             if not reject_re.match(raw):
@@ -97,11 +110,19 @@ class Glossatory(Bot):
 if __name__ == '__main__':
     g = Glossatory()
     g.configure()
+    if 'colon' in g.cf:
+        g.colon = g.cf['colon']
+    else:
+        g.colon = DEFAULT_COLON
     if 'spectrum' in g.cf:
         g.spectrum()
     else:
-        t = g.rand_temp()
-        defn = g.glossolalia(t)
+        defn = None
+        if 'model' in g.cf:
+            t = g.rand_temp()
+            defn = g.glossolalia(t)
+        elif 'lines' in g.cf:
+            defn = g.reuse_lines()
         g.random_pause()
         options = {}
         if defn:
