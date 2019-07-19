@@ -1,10 +1,22 @@
 
 # config for glossatory
 
+
+# for Twitter 
+
 api_key:
 api_secret:
 oauth_token:
 oauth_token_secret:
+
+# for Mastodon
+
+client_id:  
+client_secret:  
+access_token: 
+base_url: 
+
+# Glossatory config
 
 model: /home/pi/torch/torch-rnn/cv/checkpoint_215100.t7
 sample: 100 
@@ -12,7 +24,8 @@ t_period: 20
 t_0: 0.45
 t_amp: 0.15 
 temperature: 0.92 
-pause: 1200
+pause: 1
 logs: /home/pi/bots/glossatory/logs
+latest: oulipo.log
 accept: "^[A-Z ]+: [a-z(]+.*[a-z][a-z][a-z)]$"
 

@@ -1,0 +1,22 @@
+
+# config for the oulipo version of glossatory
+# this reads a log file dumped out by the botsin.space version
+# rather than running the neural net again
+
+client_id:  
+client_secret:  
+access_token: 
+base_url: 
+
+lines: /home/pi/bots/glossatory/logs_mastodon/oulipo.log
+
+filter: "^([^Ee]+): ([^Ee]+)$"
+
+content_warning: "a computational graph's gloss of {}"
+
+pause: 1
+
+
+
+
+lines: /home/pi/bots/glossatory/logs/oulipo
