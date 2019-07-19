@@ -2,7 +2,7 @@
 
 from botclient import Bot
 import torchrnn
-import time, math, random, os.path, re, sys, shutil
+import time, math, random, os, os.path, re, sys, shutil
 
 DEF_MIN = 10
 DEFAULT_COLON = ': '
@@ -40,6 +40,9 @@ class Glossatory(Bot):
                 print("Empty result set")
         return result
 
+    # make this use the latest twitter logs as well as the masto ones
+    # and if it can't find one in the last live run, start up a text
+    # bot which uses a backup prepared on the HPC 
     def reuse_lines(self):
         results = []
         with open(self.cf['lines'], 'r') as f:
@@ -50,6 +53,8 @@ class Glossatory(Bot):
                 if m:
                     results.append(( m.group(1), m.group(2) ))
         if results:
+            # move it so that we don't reuse it
+            shutil.move(self.cf['lines'], self.cf['lines'] + '.' + str(time.time()))
             return random.choice(results)
         else:
             return None
