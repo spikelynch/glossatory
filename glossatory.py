@@ -6,8 +6,12 @@ import time, math, random, os, os.path, re, sys, shutil
 
 DEF_MIN = 10
 DEFAULT_COLON = ': '
+DEFAULT_FILTER = 'filtered'
 
 class Glossatory(Bot):
+
+    # Uses the torcrnn library to run the RNN, clean and log the output,
+    # and return a result
 
     def glossolalia(self, t):
         result = None
@@ -24,41 +28,43 @@ class Glossatory(Bot):
                 min_length=min_length
                 )
             lines = self.clean_glosses(lines)
-            if 'logs' in self.cf:
-                log = self.logfile(t)
-                print("Log = {}".format(log))
-                with open(log, 'wt') as f:
-                    for w, d in lines:
-                        f.write(w + ': ' + d + "\n")
-                if 'latest' in self.cf:
-                    latest = os.path.join(self.cf['logs'], self.cf['latest'])
-                    shutil.copy(log, latest)
+            self.write_logs(lines)
             if len(lines) > 5:
-                result = random.choice(lines[:-2])
+                result = random.choice(lines[1:-2])
                 loop = loop - 1
             else:
                 print("Empty result set")
         return result
 
-    # make this use the latest twitter logs as well as the masto ones
-    # and if it can't find one in the last live run, start up a text
-    # bot which uses a backup prepared on the HPC 
-    def reuse_lines(self):
-        results = []
-        with open(self.cf['lines'], 'r') as f:
-            lines = f.readlines()
+
+    # Writes a complete log of all output if 'logs' is defined.
+    # If 'filter' is defined, runs the output through the filter
+    # and append matching lines to 'filterfile' - this is how
+    # the entries for the oulipo version are built
+
+    def write_logs(self, lines):
+        if 'logs' in self.cf:
+            log = self.logfile(str(time.time())) + '.log')
+            print("Log = {}".format(log))
+            with open(log, 'wt') as f:
+                for w, d in lines:
+                    f.write(w + ': ' + d + "\n")
+        if 'filter' in self.cf:
             fre = re.compile(self.cf['filter'])
-            for l in lines:
-                m = fre.match(l)
-                if m:
-                    results.append(( m.group(1), m.group(2) ))
-        if results:
-            # move it so that we don't reuse it
-            shutil.move(self.cf['lines'], self.cf['lines'] + '.' + str(time.time()))
-            return random.choice(results)
-        else:
-            return None
+            filterfile = self.logfile(DEFAULT_FILTER)
+            if 'filterfile' in self.cf:
+                filterf = self.logfile(self.cf['filterfile'])
+            print("Filtered = {}".format(filterf))
+            with open(filterf, 'a') as f:
+                for w, d in lines:
+                    l = w + ': ' + d
+                    if fre.match(l):
+                        f.write(l + "\n")
          
+
+    # Filters the glosses for basic syntax, prohibited terms (this
+    # is for racist language, not the oulipo version, see the write_logs
+    # function for how that works) and unbalanced parentheses
 
     def clean_glosses(self, lines):
         accept_re = re.compile(self.cf['accept'])
@@ -87,7 +93,13 @@ class Glossatory(Bot):
     def rand_temp(self):
         t0 = self.cf['t_0']
         tamp = self.cf['t_amp']
-        return t0 - tamp + 2 * random.random() * tamp 
+        return t0 - tamp + 2 * random.random() * tamp
+
+    def temperature(self):
+        if 't_period' in self.cf:
+            return self.sine_temp()
+        else:
+            return self.rand_temp() 
         
     def random_pause(self):
         if 'pause' in self.cf:
@@ -106,11 +118,8 @@ class Glossatory(Bot):
             tweet = g.glossolalia(t)
             print("{}: {}".format(t, tweet))
 
-    def logfile(self, t):
-        if 'spectrum' in self.cf:
-            return os.path.join(self.cf['logs'], self.tstamp + '.' + str(t) + '.log')
-        else:
-            return os.path.join(self.cf['logs'], str(time.time())) + '.log'
+    def logfile(self, p):
+        return os.path.join(self.cf['logs'], p)
         
 if __name__ == '__main__':
     g = Glossatory()
@@ -123,11 +132,8 @@ if __name__ == '__main__':
         g.spectrum()
     else:
         defn = None
-        if 'model' in g.cf:
-            t = g.rand_temp()
-            defn = g.glossolalia(t)
-        elif 'lines' in g.cf:
-            defn = g.reuse_lines()
+        t = g.temperature()
+        defn = g.glossolalia(t)
         g.random_pause()
         options = {}
         if defn:

@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+from textbot import TextBot
+import re
+
+DEFAULT_COLON = ': '
+
+class OulipoGlossatory(TextBot):
+
+
+	# calls TextBot's get_next, then splits the result into
+	# a term and definition
+
+	def get_next(self):
+		line = super(OulipoGlossatory, self).get_next()
+		oulipo_re = re.compile('^([^Ee]+)' + self.colon + '([^Ee]+)$')
+		m = oulipo_re.match(line)
+		if m:
+			return ( m.group(1), m.group(2) )
+
+
+if __name__ == '__main__':
+    og = OulipoGlossatory()
+    og.configure()
+    if 'colon' in og.cf:
+        og.colon = og.cf['colon']
+    else:
+        og.colon = DEFAULT_COLON
+    defn = og.get_next()
+    if defn:
+    	og.random_pause()
+    	options = {}
+        if 'content_warning' in og.cf:
+            options['spoiler_text'] = og.cf['content_warning'].format(defn[0])
+        og.post(defn[0] + og.colon + defn[1], options)
+    else:
+        print("Something went wrong")
+
