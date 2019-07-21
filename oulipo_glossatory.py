@@ -7,16 +7,16 @@ DEFAULT_COLON = ': '
 
 class OulipoGlossatory(TextBot):
 
+    # calls TextBot's get_next, then splits the result into
+    # a term and definition
 
-	# calls TextBot's get_next, then splits the result into
-	# a term and definition
-
-	def get_next(self):
-		line = super(OulipoGlossatory, self).get_next()
-		oulipo_re = re.compile('^([^Ee]+)' + self.colon + '([^Ee]+)$')
-		m = oulipo_re.match(line)
-		if m:
-			return ( m.group(1), m.group(2) )
+    def get_next(self):
+        line = super(OulipoGlossatory, self).get_next()
+        filter = self.cf['filter']
+        oulipo_re = re.compile(filter)
+        m = oulipo_re.match(line)
+        if m:
+            return ( m.group(1), m.group(2) )
 
 
 if __name__ == '__main__':

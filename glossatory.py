@@ -44,7 +44,7 @@ class Glossatory(Bot):
 
     def write_logs(self, lines):
         if 'logs' in self.cf:
-            log = self.logfile(str(time.time())) + '.log')
+            log = self.logfile(str(time.time()) + '.log')
             print("Log = {}".format(log))
             with open(log, 'wt') as f:
                 for w, d in lines:
