@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-ghome="/home/pi/bots/glossatory"
+ghome="/home/pi/bots_ii/glossatory"
 
 export PYTHONPATH="/home/pi/bots/botclient:$PYTHONPATH"
 export TORCH_RNN="/home/pi/torch/torch-rnn"
