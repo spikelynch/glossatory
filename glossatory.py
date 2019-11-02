@@ -53,7 +53,7 @@ class Glossatory(Bot):
             fre = re.compile(self.cf['filter'])
             filterfile = self.logfile(DEFAULT_FILTER)
             if 'filterfile' in self.cf:
-                filterf = self.logfile(self.cf['filterfile'])
+                filterf = self.cf['filterfile']
             print("Filtered = {}".format(filterf))
             with open(filterf, 'a') as f:
                 for w, d in lines:

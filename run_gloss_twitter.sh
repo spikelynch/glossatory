@@ -1,10 +1,17 @@
 #!/bin/bash
 
 
-ghome="/home/pi/bots_ii/glossatory"
 
-export PYTHONPATH="/home/pi/bots/botclient:$PYTHONPATH"
-export TORCH_RNN="/home/pi/torch/torch-rnn"
-export TORCH_TH="/home/pi/torch/install/bin/th"
+GLHOME="/home/mikelynch/bots_ii/glossatory"
+BCHOME="/home/mikelynch/bots/botclient"
 
-/usr/bin/python3.2 ${ghome}/glossatory.py -s Twitter -c ${ghome}/twitter_conf.yml
+export PYTHONPATH="$BCHOME:$PYTHONPATH"
+
+export TORCH_RNN="/home/mikelynch/torch/torch-rnn"
+export TORCH_TH="/home/mikelynch/torch/install/bin/th"
+
+/usr/bin/nice -n 19 /usr/local/bin/python3.5 ${GLHOME}/glossatory.py  -s Twitter -c ${GLHOME}/config/gloss_live_twitter.yml
+
+
+# /usr/local/bin/python3.5 ${GLHOME}/oulipo_glossatory.py -s Twitter -c ${GLHOME}/config/gloss_twitter.yml
+
