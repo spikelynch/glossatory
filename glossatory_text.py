@@ -28,7 +28,6 @@ if __name__ == '__main__':
         og.colon = DEFAULT_COLON
     defn = og.get_next()
     if defn:
-        og.random_pause()
         options = {}
         if 'content_warning' in og.cf:
             options['spoiler_text'] = og.cf['content_warning'].format(defn[0])
