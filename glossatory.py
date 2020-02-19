@@ -19,39 +19,65 @@ class Glossatory(Bot):
         min_length = DEF_MIN
         if 'minimum' in self.cf:
             min_length = self.cf['minimum']
+        options = {}
+        if 'suppress' in self.cf:
+            options['suppress'] = self.lipogram()
+        else:
+            self.forbid = None
         while not result and loop > 0:
             lines = torchrnn.generate_lines(
                 n=self.cf['sample'],
                 temperature=t,
                 model=self.cf['model'],
                 max_length=self.api.char_limit,
-                min_length=min_length
+                min_length=min_length,
+                opts=options
                 )
             lines = self.clean_glosses(lines)
-            self.write_logs(lines)
+            self.write_logs(t, lines)
             if len(lines) > 5:
                 result = random.choice(lines[1:-2])
                 loop = loop - 1
             else:
                 print("Empty result set")
         return result
+  
+    def extra_lipo(self, k, chars):
+        if chars:
+            if random.random() < k:
+                c = random.choice(chars)
+                return c + self.extra_lipo(k, chars.replace(c, ''))
+        return ''
 
+    def lipogram(self):
+        forbid = self.cf['suppress']
+        if 'suppress_maybe' in self.cf:
+            k = 0.2
+            if 'suppress_maybe_p' in self.cf:
+                k = float(self.cf['suppress_maybe_p'])
+            forbid += self.extra_lipo(k, self.cf['suppress_maybe'])
+        forbid += forbid.upper()
+        self.forbid = forbid
+        return forbid
 
     # Writes a complete log of all output if 'logs' is defined.
     # If 'filter' is defined, runs the output through the filter
     # and append matching lines to 'filterfile' - this is how
     # the entries for the oulipo version are built
 
-    def write_logs(self, lines):
+    def write_logs(self, t, lines):
         if 'logs' in self.cf:
             log = self.logfile(str(time.time()) + '.log')
             print("Log = {}".format(log))
             with open(log, 'wt') as f:
+                f.write("# temperature: {}\n".format(t))
+                if self.forbid:
+                    f.write("# forbid: {}\n".format(self.forbid))
                 for w, d in lines:
                     f.write(w + ': ' + d + "\n")
         if 'filter' in self.cf:
             fre = re.compile(self.cf['filter'])
-            filterfile = self.logfile(DEFAULT_FILTER)
+            filterf = self.logfile(DEFAULT_FILTER)
             if 'filterfile' in self.cf:
                 filterf = self.cf['filterfile']
             print("Filtered = {}".format(filterf))
@@ -72,7 +98,7 @@ class Glossatory(Bot):
         unbalanced_re = re.compile('\([^)]+$')
         cleaned = []
         for raw in lines:
-            if not reject_re.match(raw):
+            if not reject_re.search(raw):
                 m = accept_re.match(raw)
                 if m:
                     word = m.group(1).upper().replace('_', ' ')
