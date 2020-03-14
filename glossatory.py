@@ -7,6 +7,14 @@ DEFAULT_COLON = ': '
 
 class Glossatory(RnnBot):
 
+    def configure(self):
+        super(Glossatory, self).configure()
+        if 'colon' in self.cf:
+            self.colon = self.cf['colon']
+        else:
+            self.colon = DEFAULT_COLON
+  
+
     def parse(self, lines):
         accept_re = re.compile(self.cf['accept'])
         reject_re = re.compile(self.cf['reject'], re.IGNORECASE)
@@ -33,22 +41,23 @@ class Glossatory(RnnBot):
         
 if __name__ == '__main__':
     g = Glossatory()
-    g.configure()
-    if 'colon' in g.cf:
-        g.colon = g.cf['colon']
-    else:
-        g.colon = DEFAULT_COLON
-    if 'spectrum' in g.cf:
-        g.spectrum()
-    else:
-        defn = None
-        t = g.temperature()
-        post, title = g.generate(t)
-        options = {}
-        if post:
-            if 'content_warning' in g.cf:
-                options['spoiler_text'] = g.cf['content_warning'].format(title)
-            g.post(post, options)
-        else:
-            print("Something went wrong")
+    g.run()
+    # g.configure()
+    # if 'colon' in g.cf:
+    #     g.colon = g.cf['colon']
+    # else:
+    #     g.colon = DEFAULT_COLON
+    # if 'spectrum' in g.cf:
+    #     g.spectrum()
+    # else:
+    #     defn = None
+    #     t = g.temperature()
+    #     post, title = g.generate(t)
+    #     options = {}
+    #     if post:
+    #         if 'content_warning' in g.cf:
+    #             options['spoiler_text'] = g.cf['content_warning'].format(title)
+    #         g.post(post, options)
+    #     else:
+    #         print("Something went wrong")
 

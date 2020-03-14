@@ -9,40 +9,67 @@ DEFAULT_FILTER = 'filtered'
 
 class RnnBot(Bot):
 
+    # Add a -t / --test flag for testing parsers
+
+    def __init__(self):
+        super(Bot, self).__init__()
+        self.ap.add_argument('-t', '--test', action='store_true', help="Test parser")
+
+
+
+    def prepare(self, t):
+        self.temperature = t
+        self.min_length = DEF_MIN
+        if 'minimum' in self.cf:
+            self.min_length = self.cf['minimum']
+        self.options = {}
+        if 'suppress' in self.cf:
+            self.options['suppress'] = self.lipogram()
+        else:
+            self.forbid = None
+
+    def sample(self):
+        return torchrnn.generate_lines(
+            n=self.cf['sample'],
+            temperature=self.temperature,
+            model=self.cf['model'],
+            max_length=self.api.char_limit,
+            min_length=self.min_length,
+            opts=self.options
+        )
+
+
+
     # Uses the torcrnn library to run the RNN, clean and log the output,
     # and return a result
 
     def generate(self, t):
         result = None
         loop = 10
-        min_length = DEF_MIN
-        if 'minimum' in self.cf:
-            min_length = self.cf['minimum']
-        options = {}
-        if 'suppress' in self.cf:
-            options['suppress'] = self.lipogram()
-        else:
-            self.forbid = None
+        self.prepare(t)
         while not result and loop > 0:
-            sample = torchrnn.generate_lines(
-                n=self.cf['sample'],
-                temperature=t,
-                model=self.cf['model'],
-                max_length=self.api.char_limit,
-                min_length=min_length,
-                opts=options
-                )
+            sample = self.sample()
             lines = self.tokenise(sample)
             lines = self.clean(lines)
             lines = self.parse(lines)
-            print(lines)
             self.write_logs(t, lines)
             if len(lines) > 5:
                 result = random.choice(lines[1:-2])
                 loop = loop - 1
             else:
-                print("Empty result set")        
+                print("Empty result set")  
         return self.render(result)
+
+    # Used in test mode: collects one batch and renders all of them
+
+    def test(self, t):
+        self.prepare(t)
+        sample = self.sample()
+        lines = self.tokenise(sample)
+        lines = self.clean(lines)
+        lines = self.parse(lines)
+        return [ self.render(l) for l in lines ]
+
 
     # override this method if the RNN needs a more complicated way
     # to 
@@ -177,26 +204,37 @@ class RnnBot(Bot):
         steps = int(sv[2])
         for i in range(steps):
             t = low + (high - low) * (i / (steps - 1))
-            tweet = g.glossolalia(t)
-            print("{}: {}".format(t, tweet))
+            output, title = self.generate(t)
+            print(output)
 
     def logfile(self, p):
         return os.path.join(self.cf['logs'], p)
+
+
+    def run(self):
+        self.configure()
+        if 'spectrum' in self.cf:
+            self.spectrum()
+        elif self.args.test:
+            t = self.temperature()
+            print("Running in test mode, t = {}".format(t))
+            sample = self.test(t)
+            for l in sample:
+                print(l)
+        else:
+            output = None
+            t = self.temperature()
+            output, title = self.generate(t)
+            options = {}
+            if output:
+                if 'content_warning' in self.cf:
+                    options['spoiler_text'] = self.cf['content_warning'].format(title)
+                self.post(output, options)
+            else:
+                print("Something went wrong")
+
+
         
 if __name__ == '__main__':
     rnnb = RnnBot()
-    rnnb.configure()
-    if 'spectrum' in rnnb.cf:
-        rnnb.spectrum()
-    else:
-        output = None
-        t = rnnb.temperature()
-        output, title = rnnb.generate(t)
-        options = {}
-        if output:
-            if 'content_warning' in rnnb.cf:
-                options['spoiler_text'] = rnnb.cf['content_warning'].format(title)
-            g.post(output, options)
-        else:
-            print("Something went wrong")
-
+    rnnb.run()
