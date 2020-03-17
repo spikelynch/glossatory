@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 from botclient import Bot
@@ -12,7 +13,7 @@ class RnnBot(Bot):
     # Add a -t / --test flag for testing parsers
 
     def __init__(self):
-        super(Bot, self).__init__()
+        super().__init__()
         self.ap.add_argument('-t', '--test', action='store_true', help="Test parser")
 
 
@@ -29,14 +30,23 @@ class RnnBot(Bot):
             self.forbid = None
 
     def sample(self):
-        return torchrnn.generate_lines(
-            n=self.cf['sample'],
-            temperature=self.temperature,
-            model=self.cf['model'],
-            max_length=self.api.char_limit,
-            min_length=self.min_length,
-            opts=self.options
-        )
+        if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
+            print("Sampling using text")
+            return torchrnn.generate_text(
+                temperature=self.temperature,
+                model=self.cf['model'],
+                length=self.cf['sample'],
+                opts=self.options
+            )
+        else:
+            return torchrnn.generate_lines(
+                n=self.cf['sample'],
+                temperature=self.temperature,
+                model=self.cf['model'],
+                max_length=self.api.char_limit,
+                min_length=self.min_length,
+                opts=self.options
+            )
 
 
 
@@ -52,12 +62,10 @@ class RnnBot(Bot):
             lines = self.tokenise(sample)
             lines = self.clean(lines)
             lines = self.parse(lines)
+            lines = self.length_filter(lines) 
             self.write_logs(t, lines)
-            if len(lines) > 5:
-                result = random.choice(lines[1:-2])
-                loop = loop - 1
-            else:
-                print("Empty result set")  
+            result = self.select(lines)
+            loop = loop - 1
         return self.render(result)
 
     # Used in test mode: collects one batch and renders all of them
@@ -68,6 +76,7 @@ class RnnBot(Bot):
         lines = self.tokenise(sample)
         lines = self.clean(lines)
         lines = self.parse(lines)
+        lines = self.length_filter(lines) 
         return [ self.render(l) for l in lines ]
 
 
@@ -77,7 +86,9 @@ class RnnBot(Bot):
     def tokenise(self, sample):
         return sample
 
-    # applies the accept and reject regexps
+    # applies the accept and reject regexps.
+    #
+    # doesn't filter for length because parse might change it.
 
     def clean(self, lines):
         accept_re = re.compile(self.cf['accept'])
@@ -96,6 +107,14 @@ class RnnBot(Bot):
     def parse(self, lines):
         return lines
 
+    # select is used to pick a post from the list of valid results
+
+    def select(self, lines):
+        if len(lines) > 5:
+            return random.choice(lines[1:-2])
+        else:
+            return None 
+
     # render takes an individual line (which could be a string, or a
     # tuple or whatever parse emits) and returns the text of a Mastodon post
     # and an abbreviated version to be injected into a content warning, if 
@@ -107,7 +126,10 @@ class RnnBot(Bot):
     def render(self, line):
         return line, ''
 
+    # filter the rendered version of the parse results for api length
 
+    def length_filter(self, lines):
+        return [ l for l in lines if len(self.render(l)[0]) <= self.api.char_limit ]
   
     def extra_lipo(self, k, chars):
         if chars:
@@ -219,8 +241,8 @@ class RnnBot(Bot):
             t = self.temperature()
             print("Running in test mode, t = {}".format(t))
             sample = self.test(t)
-            for l in sample:
-                print(l)
+            for output, title in sample:
+                print(output)
         else:
             output = None
             t = self.temperature()
