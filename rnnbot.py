@@ -77,15 +77,14 @@ class RnnBot(Bot):
 
     def pregen(self):
         files = self.get_pregen()
-        print(files)
         for f in files:
             with open(f, 'r') as fh:
-                print("# {}".format(f))
+                print("# {}\n".format(f))
                 rawlines = fh.read()
                 sample = rawlines.replace("\n", " ")
                 lines = self.process(sample)
                 for output, title in [ self.render(l) for l in lines ]:
-                    print(output)
+                    print(output + "\n")
 
     def process(self, raw):
         lines = self.tokenise(raw)
