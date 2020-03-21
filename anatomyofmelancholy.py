@@ -19,9 +19,8 @@ class AnatomyOfMelancholy(RnnBot):
         punkt_param = PunktParameters()
         punkt_param.abbrev_types = set(self.cf['abbreviations'])
         tokenizer = PunktSentenceTokenizer(punkt_param)
-        tokenizer.tokenize('Fig. 2 shows a U.S.A. map.')
         sents = tokenizer.tokenize(text)
-        return sents
+        return sents[:-1]
 
     def parse(self, lines):
         cleaned = []

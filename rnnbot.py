@@ -14,7 +14,8 @@ class RnnBot(Bot):
 
     def __init__(self):
         super().__init__()
-        self.ap.add_argument('-t', '--test', action='store_true', help="Test parser")
+        self.ap.add_argument('-t', '--test', action='store_true', help="Test parser on RNN output")
+        self.ap.add_argument('-p', '--pregen', default=None, help="Test parser on pre-generated output (file or directory)")
 
 
 
@@ -59,10 +60,7 @@ class RnnBot(Bot):
         self.prepare(t)
         while not result and loop > 0:
             sample = self.sample()
-            lines = self.tokenise(sample)
-            lines = self.clean(lines)
-            lines = self.parse(lines)
-            lines = self.length_filter(lines) 
+            lines = self.process(sample)
             self.write_logs(t, lines)
             result = self.select(lines)
             loop = loop - 1
@@ -73,11 +71,28 @@ class RnnBot(Bot):
     def test(self, t):
         self.prepare(t)
         sample = self.sample()
-        lines = self.tokenise(sample)
+        lines = self.process(sample)
+        for output, title in [ self.render(l) for l in lines ]:
+            print(output)
+
+    def pregen(self):
+        files = self.get_pregen()
+        print(files)
+        for f in files:
+            with open(f, 'r') as fh:
+                print("# {}".format(f))
+                rawlines = fh.read()
+                sample = rawlines.replace("\n", " ")
+                lines = self.process(sample)
+                for output, title in [ self.render(l) for l in lines ]:
+                    print(output)
+
+    def process(self, raw):
+        lines = self.tokenise(raw)
         lines = self.clean(lines)
         lines = self.parse(lines)
-        lines = self.length_filter(lines) 
-        return [ self.render(l) for l in lines ]
+        lines = self.length_filter(lines)
+        return lines
 
 
     # override this method if the RNN needs a more complicated way
@@ -176,7 +191,23 @@ class RnnBot(Bot):
                     l1, t = self.render(l)
                     if fre.match(l1):
                         f.write(l1 + "\n")
-         
+
+    # the pregen param can be a file or a directory - this tests which
+    # it is and returns an array of either the file or the directory's
+    # contents
+
+    def get_pregen(self):
+        if os.path.isfile(self.args.pregen):
+            return [ self.args.pregen ]
+        if os.path.isdir(self.args.pregen):
+            files = []
+            with os.scandir(self.args.pregen) as it:
+                for entry in it:
+                    if entry.is_file() and not entry.name[0] == '.':
+                        files.append(os.path.join(self.args.pregen, entry.name))
+            files.sort()
+            return files
+
 
     # Filters the glosses for basic syntax, prohibited terms (this
     # is for racist language, not the oulipo version, see the write_logs
@@ -240,9 +271,10 @@ class RnnBot(Bot):
         elif self.args.test:
             t = self.temperature()
             print("Running in test mode, t = {}".format(t))
-            sample = self.test(t)
-            for output, title in sample:
-                print(output)
+            self.test(t)
+        elif self.args.pregen:
+            print("Running in test mode on pre-generated samples")
+            self.pregen()
         else:
             output = None
             t = self.temperature()
