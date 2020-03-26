@@ -6,6 +6,7 @@ import torchrnn
 import time, math, random, os, os.path, re, sys, shutil
 
 DEF_MIN = 10
+DEF_LOOP_MAX = 10
 DEFAULT_FILTER = 'filtered'
 
 class RnnBot(Bot):
@@ -14,6 +15,8 @@ class RnnBot(Bot):
 
     def __init__(self):
         super().__init__()
+        self.timestamp = str(time.time())
+        self.ap.add_argument('-x', '--extra', action='store_true', help="Write extra debug output to logs")
         self.ap.add_argument('-t', '--test', action='store_true', help="Test parser on RNN output")
         self.ap.add_argument('-p', '--pregen', default=None, help="Test parser on pre-generated output (file or directory)")
 
@@ -21,9 +24,22 @@ class RnnBot(Bot):
 
     def prepare(self, t):
         self.temperature = t
+        self.notes = []
         self.min_length = DEF_MIN
+        if 'min_length' in self.cf:
+            self.min_length = int(self.cf['min_length'])
+        self.max_length = self.api.char_limit
+        if 'max_length' in self.cf:
+            self.max_length = int(self.cf['max_length'])
+        self.loop_max = DEF_LOOP_MAX
+        if 'loop' in self.cf:
+            self.loop_max = int(self.cf['loop'])
         if 'minimum' in self.cf:
             self.min_length = self.cf['minimum']
+        if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
+            self.log_sep = "\n---\n" 
+        else:
+            self.log_sep = "\n" 
         self.options = {}
         if 'suppress' in self.cf:
             self.options['suppress'] = self.lipogram()
@@ -33,21 +49,23 @@ class RnnBot(Bot):
     def sample(self):
         if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
             print("Sampling using text")
-            return torchrnn.generate_text(
+            self.raw_rnn = torchrnn.generate_text(
                 temperature=self.temperature,
                 model=self.cf['model'],
                 length=self.cf['sample'],
                 opts=self.options
             )
         else:
-            return torchrnn.generate_lines(
+            self.raw_rnn = torchrnn.generate_lines(
                 n=self.cf['sample'],
                 temperature=self.temperature,
                 model=self.cf['model'],
-                max_length=self.api.char_limit,
+                max_length=self.max_length,
                 min_length=self.min_length,
                 opts=self.options
             )
+
+        return self.raw_rnn
 
 
 
@@ -56,14 +74,18 @@ class RnnBot(Bot):
 
     def generate(self, t):
         result = None
-        loop = 10
+        self.loop = 0
         self.prepare(t)
-        while not result and loop > 0:
+        while not result and self.loop < self.loop_max:
+            self.notes.append("Pass {}".format(self.loop))
             sample = self.sample()
             lines = self.process(sample)
             self.write_logs(t, lines)
             result = self.select(lines)
-            loop = loop - 1
+            self.loop = self.loop + 1
+        self.notes.append("Result: '{}'".format(result))
+        if self.notes:
+            self.write_debug(self.notes, '6.notes.txt')
         return self.render(result)
 
     # Used in test mode: collects one batch and renders all of them
@@ -72,8 +94,10 @@ class RnnBot(Bot):
         self.prepare(t)
         sample = self.sample()
         lines = self.process(sample)
+        if self.notes:
+            self.write_debug(self.notes, '6.notes.txt')
         for output, title in [ self.render(l) for l in lines ]:
-            print(output)
+            print(output + "\n--\n")
 
     def pregen(self):
         files = self.get_pregen()
@@ -87,10 +111,15 @@ class RnnBot(Bot):
                     print(output + "\n")
 
     def process(self, raw):
+        self.write_debug(raw, '1.rnn.txt')
         lines = self.tokenise(raw)
+        self.write_debug(lines, '2.tok.txt')
         lines = self.clean(lines)
+        self.write_debug(lines, '3.cleaned.txt')
         lines = self.parse(lines)
+        self.write_debug(lines, '4.parsed.txt')
         lines = self.length_filter(lines)
+        self.write_debug(lines, '5.filtered.txt')
         return lines
 
 
@@ -143,7 +172,7 @@ class RnnBot(Bot):
     # filter the rendered version of the parse results for api length
 
     def length_filter(self, lines):
-        return [ l for l in lines if len(self.render(l)[0]) <= self.api.char_limit ]
+        return [ l for l in lines if len(self.render(l)[0]) <= self.max_length ]
   
     def extra_lipo(self, k, chars):
         if chars:
@@ -170,7 +199,8 @@ class RnnBot(Bot):
 
     def write_logs(self, t, lines):
         if 'logs' in self.cf:
-            log = self.logfile(str(time.time()) + '.log')
+            timestamp = str(time.time())
+            log = self.logfile('log')
             print("Log = {}".format(log))
             with open(log, 'wt') as f:
                 f.write("# temperature: {}\n".format(t))
@@ -178,7 +208,7 @@ class RnnBot(Bot):
                     f.write("# forbid: {}\n".format(self.forbid))
                 for l in lines:
                     r, t = self.render(l)
-                    f.write(r + "\n")
+                    f.write(r + self.log_sep)
         if 'filter' in self.cf:
             fre = re.compile(self.cf['filter'])
             filterf = self.logfile(DEFAULT_FILTER)
@@ -191,12 +221,25 @@ class RnnBot(Bot):
                     if fre.match(l1):
                         f.write(l1 + "\n")
 
+    # dump output from the pipeline to a debug file
+
+    def write_debug(self, debug, ext):
+        if self.args.extra:
+            debugfile = self.logfile(ext)
+            with open(debugfile, 'wt') as f:
+                if type(debug) == list:
+                    f.writelines([repr(l) + '\n\n' for l in debug])
+                else:
+                    f.write(debug)
+
+
     # the pregen param can be a file or a directory - this tests which
     # it is and returns an array of either the file or the directory's
     # contents
 
     def get_pregen(self):
         if os.path.isfile(self.args.pregen):
+            print(self.args.pregen + " is a file")
             return [ self.args.pregen ]
         if os.path.isdir(self.args.pregen):
             files = []
@@ -206,30 +249,32 @@ class RnnBot(Bot):
                         files.append(os.path.join(self.args.pregen, entry.name))
             files.sort()
             return files
+        print(self.args.pregen + " is neither a file nor a directory")
+        sys.exit()
 
 
-    # Filters the glosses for basic syntax, prohibited terms (this
-    # is for racist language, not the oulipo version, see the write_logs
-    # function for how that works) and unbalanced parentheses
+    # # Filters the glosses for basic syntax, prohibited terms (this
+    # # is for racist language, not the oulipo version, see the write_logs
+    # # function for how that works) and unbalanced parentheses
 
-    def clean_glosses(self, lines):
-        accept_re = re.compile(self.cf['accept'])
-        reject_re = re.compile(self.cf['reject'], re.IGNORECASE)
-        unbalanced_re = re.compile('\([^)]+$')
-        cleaned = []
-        for raw in lines:
-            if not reject_re.search(raw):
-                m = accept_re.match(raw)
-                if m:
-                    word = m.group(1).upper().replace('_', ' ')
-                    defn = m.group(2)
-                    if unbalanced_re.search(defn):
-                        defn += ')'
-                    if len(word + self.colon + defn) <= self.api.char_limit:
-                        cleaned.append(( word, defn ))
-                else:
-                    print("No match: {}".format(raw))
-        return cleaned
+    # def clean_glosses(self, lines):
+    #     accept_re = re.compile(self.cf['accept'])
+    #     reject_re = re.compile(self.cf['reject'], re.IGNORECASE)
+    #     unbalanced_re = re.compile('\([^)]+$')
+    #     cleaned = []
+    #     for raw in lines:
+    #         if not reject_re.search(raw):
+    #             m = accept_re.match(raw)
+    #             if m:
+    #                 word = m.group(1).upper().replace('_', ' ')
+    #                 defn = m.group(2)
+    #                 if unbalanced_re.search(defn):
+    #                     defn += ')'
+    #                 if len(word + self.colon + defn) <= self.api.char_limit:
+    #                     cleaned.append(( word, defn ))
+    #             else:
+    #                 print("No match: {}".format(raw))
+    #     return cleaned
 
     def sine_temp(self):
         p = float(self.cf['t_period']) * 60.0 * 60.0
@@ -259,8 +304,14 @@ class RnnBot(Bot):
             output, title = self.generate(t)
             print(output)
 
-    def logfile(self, p):
-        return os.path.join(self.cf['logs'], p)
+
+
+
+    def logfile(self, ext):
+        if hasattr(self, 'loop'):
+            return os.path.join(self.cf['logs'], "{}.{}.{}".format(self.timestamp, self.loop, ext))
+        else:
+            return os.path.join(self.cf['logs'], "{}.{}".format(self.timestamp, + ext))
 
 
     def run(self):
