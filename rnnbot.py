@@ -228,7 +228,7 @@ class RnnBot(Bot):
             debugfile = self.logfile(ext)
             with open(debugfile, 'wt') as f:
                 if type(debug) == list:
-                    f.writelines([repr(l) + '\n\n' for l in debug])
+                    f.writelines('\n--\n'.join(debug))
                 else:
                     f.write(debug)
 

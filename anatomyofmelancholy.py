@@ -37,31 +37,38 @@ class AnatomyOfMelancholy(RnnBot):
         verses = []
         verse = ''
         gap = 0
+        n = 0
         vsample = sample.replace("\r", '')
         for line in vsample.split("\n"):
-            m = re.match(r'(\[\d+\])?(\s{1,8})(\S.+)$', line)
+            m = re.match(r'(\[\d+\])?(\s{1,12})(\S.+)$', line)
             if m:
-                # if m[1]:
-                #     indent = ' '* len(m[1])
-                # else:
-                #     indent = ''
-                line = m[3]
-                if gap > 0:
-                    if gap > 1 or len(verse + line) > int(self.cf["min_length"]):
+                self.notes.append("[{}] verse line {}".format(n, line[:20]))
+                line = m.group(3)
+                if verse and gap > 1:
+                    self.notes.append("[{}] end of long gap {}".format(n, gap))
+                    if verse:
                         verses.append(verse)
-                        verse = ''
-                    verse += line + '\n'
-                    gap = 0
-                else:
-                    verse += line + '\n'
+                    verse = ''
+                elif verse and gap == 1:
+                    verse += '\n'
+                    self.notes.append("[{}] end of short gap {}".format(n, gap))
+                verse += line + '\n'
+                gap = 0
             else:
                 if re.match(r'^\s*$', line):
-                    if gap == 0 and verse:
-                        verse += line + '\n'
+                    self.notes.append("[{}] blank line {}".format(n, gap))
                     gap += 1
+                else:
+                    self.notes.append("[{}] nonverse line {} {}".format(n, gap, line[:20]))
+                    if verse:
+                        verses.append(verse)
+                        verse = ''
+                    gap = 0
+            n += 1
         if verse:
             verses.append(verse)
         verses = [ re.sub(r'\n+$', '', v) for v in verses ]
+        verses = [ v for v in verses if len(v.split("\n")) > 1 ]
         return verses
 
 
