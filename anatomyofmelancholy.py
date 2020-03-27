@@ -18,7 +18,7 @@ class AnatomyOfMelancholy(RnnBot):
         verses = self.scan_for_verse(sample)
         if verses:
             self.notes.append("got {} verses".format(len(verses)))
-            return verses
+            return [ re.sub(r'\[\d+\]', '', v) for v in verses ]
         # second pass - look for sentences
         text = re.sub(r'\[\d+\]', '', sample)
         text = re.sub("\r\n", ' ', text)
