@@ -45,6 +45,10 @@ class RnnBot(Bot):
             self.options['suppress'] = self.lipogram()
         else:
             self.forbid = None
+        if 'alliterate' in self.cf:
+            alliterate = self.alliterate()
+            if alliterate:
+                self.options['alliterate'] = alliterate 
 
     def sample(self):
         if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
@@ -191,6 +195,17 @@ class RnnBot(Bot):
         forbid += forbid.upper()
         self.forbid = forbid
         return forbid
+
+    def alliterate(self):
+        if 'alliterate_maybe_p' in self.cf:
+            k = float(self.cf['alliterate_maybe_p'])
+            if random.random() < k:
+                return random.choice(self.cf['alliterate'])
+            else:
+                print("No alliteration")
+                return None
+        else:
+            return random.choice(self.cf['alliterate'])
 
     # Writes a complete log of all output if 'logs' is defined.
     # If 'filter' is defined, runs the output through the filter
