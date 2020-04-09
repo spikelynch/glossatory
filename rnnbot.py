@@ -41,8 +41,11 @@ class RnnBot(Bot):
         else:
             self.log_sep = "\n" 
         self.options = {}
-        if 'suppress' in self.cf:
-            self.options['suppress'] = self.lipogram()
+        if 'suppress' in self.cf or 'suppress_maybe' in self.cf:
+            lipo = self.lipogram()
+            if lipo:
+                self.options['suppress'] = lipo
+                print("Suppress: " + lipo)
         else:
             self.forbid = None
         if 'alliterate' in self.cf:
@@ -186,7 +189,9 @@ class RnnBot(Bot):
         return ''
 
     def lipogram(self):
-        forbid = self.cf['suppress']
+        forbid = ''
+        if 'suppress' in self.cf:
+            forbid = self.cf['suppress']
         if 'suppress_maybe' in self.cf:
             k = 0.2
             if 'suppress_maybe_p' in self.cf:
