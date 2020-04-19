@@ -1,19 +1,15 @@
 #!/bin/bash
 
-GLHOME="/Users/mike/Desktop/bots_separate/glossatory"
-BCHOME="/Users/mike/Desktop/bots/botclient"
+
+GLHOME="/home/mikelynch/bots_ii/glossatory"
+BCHOME="/home/mikelynch/bots/botclient"
 
 export PYTHONPATH="$BCHOME:$PYTHONPATH"
-
-export TORCH_RNN="/Users/mike/torch/torch-rnn"
-export TORCH_TH="/Users/mike/torch/install/bin/th"
+export TORCH_RNN="/home/mikelynch/torch/excavate"
+export TORCH_TH="/home/mikelynch/torch/install/bin/th"
 export TORCH_SCRIPT="excavate.lua"
 
-export LUA_PATH="$TORCH_RNN/?.lua;$LUA_PATH"
+/usr/bin/nice -n 19 /usr/local/bin/python3.5 ${GLHOME}/glossatory.py   -s Twitter -c ${GLHOME}/config/gloss_live_twitter.yml
 
 
-/anaconda3/envs/bots/bin/python ${GLHOME}/glossatory.py  -d -s Twitter -c ${GLHOME}/config/gloss_live_twitter.yml
-
-
-# /usr/local/bin/python3.5 ${GLHOME}/oulipo_glossatory.py -s Twitter -c ${GLHOME}/config/gloss_twitter.yml
 

@@ -86,7 +86,6 @@ class RnnBot(Bot):
         result = None
         self.loop = 0
         self.prepare(t)
-        sys.exit(-1)
         while not result and self.loop < self.loop_max:
             self.notes.append("Pass {}".format(self.loop))
             sample = self.sample()
