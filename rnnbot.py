@@ -48,10 +48,13 @@ class RnnBot(Bot):
                 print("Suppress: " + lipo)
         else:
             self.forbid = None
-        if 'alliterate' in self.cf:
-            alliterate = self.alliterate()
-            if alliterate:
-                self.options['alliterate'] = alliterate 
+        if not self.forbid:
+            if 'alliterate' in self.cf or 'alliterate_maybe_p' in self.cf:
+                print("Maybe alliterate?")
+                alliterate = self.alliterate()
+                if alliterate:
+                    self.options['alliterate'] = alliterate 
+                    print("Alliterate: " + alliterate)
 
     def sample(self):
         if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
@@ -83,6 +86,7 @@ class RnnBot(Bot):
         result = None
         self.loop = 0
         self.prepare(t)
+        sys.exit(-1)
         while not result and self.loop < self.loop_max:
             self.notes.append("Pass {}".format(self.loop))
             sample = self.sample()
@@ -207,7 +211,6 @@ class RnnBot(Bot):
             if random.random() < k:
                 return random.choice(self.cf['alliterate'])
             else:
-                print("No alliteration")
                 return None
         else:
             return random.choice(self.cf['alliterate'])
