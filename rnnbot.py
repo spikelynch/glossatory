@@ -48,12 +48,12 @@ class RnnBot(Bot):
                 print("Suppress: " + lipo)
         else:
             self.forbid = None
+        self.alliterate = None
         if not self.forbid:
             if 'alliterate' in self.cf or 'alliterate_maybe_p' in self.cf:
-                print("Maybe alliterate?")
-                alliterate = self.alliterate()
+                alliterate = self.alliterate_maybe()
                 if alliterate:
-                    self.options['alliterate'] = alliterate 
+                    self.options['alliterate'] = alliterate
                     print("Alliterate: " + alliterate)
 
     def sample(self):
@@ -204,20 +204,27 @@ class RnnBot(Bot):
         self.forbid = forbid
         return forbid
 
-    def alliterate(self):
+    def alliterate_maybe(self):
+        self.alliterate = None
         if 'alliterate_maybe_p' in self.cf:
             k = float(self.cf['alliterate_maybe_p'])
             if random.random() < k:
-                return random.choice(self.cf['alliterate'])
+                self.alliterate = random.choice(self.cf['alliterate']) 
+                return self.alliterate
             else:
                 return None
         else:
-            return random.choice(self.cf['alliterate'])
+            self.alliterate = random.choice(self.cf['alliterate']) 
+            return self.alliterate
 
     # Writes a complete log of all output if 'logs' is defined.
     # If 'filter' is defined, runs the output through the filter
     # and append matching lines to 'filterfile' - this is how
-    # the entries for the oulipo version are built
+    # the entries for the oulipo version are built.
+
+    # Note: filtering is now switched off if there are any forbidden
+    # characters (either by suppress or suppress_maybe)  or alliteration
+    # because I didn't want those in the oulipo collection
 
     def write_logs(self, t, lines):
         if 'logs' in self.cf:
@@ -231,7 +238,8 @@ class RnnBot(Bot):
                 for l in lines:
                     r, t = self.render(l)
                     f.write(r + self.log_sep)
-        if 'filter' in self.cf:
+        if 'filter' in self.cf and not (self.forbid or self.alliterate):
+            print('writing')
             fre = re.compile(self.cf['filter'])
             filterf = self.logfile(DEFAULT_FILTER)
             if 'filterfile' in self.cf:
