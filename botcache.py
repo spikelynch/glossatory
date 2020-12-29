@@ -10,6 +10,7 @@ class BotCache():
 
 	def __init__(self, options):
 		self.dir = options['dir']
+		self.cache_max = options['cache_max']
 		self.histfile = os.path.join(self.dir, HISTORY)
 		self.history = None
 
@@ -42,18 +43,44 @@ class BotCache():
 		# find the most recent file in the cache dir which matches
 		# CACHE_PATTERN, read all the lines, and filter out those
 		# which are in the current cache history (ie they've been
-		# already used).  Returns the valid lines as a list
+		# already used) and those which start with '#'.
+		# Returns the valid lines as a list
 
 		cache_files = glob.glob(os.path.join(self.dir, CACHE_PATTERN))
 		latest = max(cache_files, key=os.path.getctime)
 		with open(latest, 'r') as ch:
 			rawcache = [ l.rstrip() for l in ch.readlines() ]
-			self.cache = [ l for l in rawcache if not l in self.history ]
+			self.cache = [ l for l in rawcache if not l in self.history and l[0] != '#' ]
 			return self.cache
 
 
+	def get(self):
+		"""Returns a cached entry. If there's nothing new in the cache,
+		or the cache_max has been exceeded, returns None"""
+		self.load_history()
+		if not self.history:
+			self.history = []
+		else:
+			if len(self.history) >= self.cache_max:
+				self.delete_history()
+				return None
+		cachelines = self.read_cache()
+		if len(cachelines) < 1:
+			return None
+		else:
+			self.write_history(cachelines[0])
+			return cachelines[0]
+
+	def put(self, item):
+		"""Add a newly generated item to the cache history - this
+		assumes that the new cache file containing the item has been
+		written to the cache directory by whatever's calling this"""
+		self.write_history(item)
+
+
+
 def generate_stuff(d):
-	print("Generating more stuff")
+	"""Generates a file of timestamped random stuff for testing"""
 	ts = str(time.time())
 	file = os.path.join(d, ts + '.log')
 	with open(file, 'w') as fh:
@@ -61,6 +88,7 @@ def generate_stuff(d):
 		for i in range(random.randrange(2, 10)):
 			babble = ''.join([ random.choice('AGTC') for k in range(10) ])
 			stuff.append(ts + '.' + babble + '.' + str(i))
+		fh.writelines("# here are \n# some comments\n")
 		fh.writelines([ l + '\n' for l in stuff])
 	return stuff[0]
 
@@ -68,24 +96,15 @@ def generate_stuff(d):
 
 
 if __name__ == '__main__':
-	cache = BotCache({ 'dir': './cache_test'})
-	max_cache = 8
-	history = cache.load_history()
-	if not history or len(history) == max_cache:
-		print("History not found or exceeded {} items".format(max_cache))
-		cache.delete_history()
+	cache = BotCache({ 'dir': './cache_test', 'cache_max': 8})
+
+	from_cache = cache.get()
+	if from_cache:
+		print("cache> {}".format(from_cache))
+	else:
 		fresh = generate_stuff('./cache_test')
 		print("fresh> {}".format(fresh))
-		cache.write_history(fresh)
-	else:
-		cachelines = cache.read_cache()
-		if len(cachelines) < 1:
-			fresh = generate_stuff('./cache_test')
-			print("fresh> {}".format(fresh))
-			cache.write_history(fresh)
-		else:
-			print("cache> {}".format(cachelines[0]))
-			cache.write_history(cachelines[0])
+		cache.put(fresh)
 
 
 

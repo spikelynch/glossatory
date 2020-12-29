@@ -33,6 +33,11 @@ class Glossatory(RnnBot):
     def render(self, line):
         return line[0] + self.colon + line[1], line[0]
 
+    def cacheparse(self, strline):
+        # only split once because definitions might have colons in them
+        parts = strline.split(self.colon, 1)
+        return strline, parts[0]
+
 if __name__ == '__main__':
     g = Glossatory()
     g.run()

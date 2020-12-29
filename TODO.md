@@ -32,6 +32,8 @@ and cw it in the same way, similar to how OulipoGlossatory does.
 
 I don't want to do a separate bot - I want to add collection-caching to the main glossatory, in such a way that AoM picks it up. It should be part of RNNBot's base functionality.
 
+I've added a BotCache class to RNNBot - it works OK with Glossatory and other entry-based nets but not AoM, because of the log file format. I think AoM will have to write its logfiles as JSON to preserve the newlines
+
 
 [BELOW VVVV DONE]
 

@@ -2,6 +2,7 @@
 #!/usr/bin/env python
 
 from botclient import Bot
+from botcache import BotCache
 import torchrnn
 import time, math, random, os, os.path, re, sys, shutil
 
@@ -172,6 +173,14 @@ class RnnBot(Bot):
     def render(self, line):
         return line, ''
 
+    # cacheparse is used when re-using a value which has been written
+    # to a logfile. In the basic version this just returns the line from
+    # the logfile. glossatory.py has its own version to split the line
+    # back into a WORD: definition pair
+
+    def cacheparse(self, line):
+        return line
+
     # filter the rendered version of the parse results for api length
 
     def length_filter(self, lines):
@@ -324,8 +333,19 @@ class RnnBot(Bot):
             self.pregen()
         else:
             output = None
-            t = self.temperature()
-            output, title = self.generate(t)
+            cache = None
+            if 'cache_max' in self.cf:
+                cmax = int(self.cf['cache_max'])
+                cache = BotCache({'dir': self.cf['logs'], 'cache_max': cmax})
+                output = cache.get()
+                if output:
+                    output, title = self.cacheparse(output)
+            if not output:
+                t = self.temperature()
+                output, title = self.generate(t)
+                if cache:
+                    cache.put(output)
+            
             options = {}
             if output:
                 if 'content_warning' in self.cf:
