@@ -11,8 +11,6 @@ DEFAULT_FILTER = 'filtered'
 
 class RnnBot(Bot):
 
-    # Add a -t / --test flag for testing parsers
-
     def __init__(self):
         super().__init__()
         self.timestamp = str(time.time())
@@ -90,8 +88,9 @@ class RnnBot(Bot):
             self.notes.append("Pass {}".format(self.loop))
             sample = self.sample()
             lines = self.process(sample)
-            self.write_logs(t, lines)
-            result = self.select(lines)
+            if len(lines) > 0:
+                result = lines[0]
+                self.write_logs(t, lines)
             self.loop = self.loop + 1
         self.notes.append("Result: '{}'".format(result))
         if self.notes:
@@ -134,13 +133,14 @@ class RnnBot(Bot):
 
 
     # override this method if the RNN needs a more complicated way
-    # to 
+    # to split up the output - see anatomyofmelancholy.py for an
+    # example
 
     def tokenise(self, sample):
         return sample
 
-    # applies the accept and reject regexps.
-    #
+    # applies the accept and reject regexps, which are used for
+    # obscenity / hate speech filtering.
     # doesn't filter for length because parse might change it.
 
     def clean(self, lines):
@@ -155,18 +155,11 @@ class RnnBot(Bot):
                     cleaned.append(raw)
         return cleaned
 
-    # parse is for model-specific processing
+    # parse is for model-specific processing - used by AoM
 
     def parse(self, lines):
         return lines
 
-    # select is used to pick a post from the list of valid results
-
-    def select(self, lines):
-        if len(lines) > 5:
-            return random.choice(lines[1:-2])
-        else:
-            return None 
 
     # render takes an individual line (which could be a string, or a
     # tuple or whatever parse emits) and returns the text of a Mastodon post
@@ -283,28 +276,6 @@ class RnnBot(Bot):
         sys.exit()
 
 
-    # # Filters the glosses for basic syntax, prohibited terms (this
-    # # is for racist language, not the oulipo version, see the write_logs
-    # # function for how that works) and unbalanced parentheses
-
-    # def clean_glosses(self, lines):
-    #     accept_re = re.compile(self.cf['accept'])
-    #     reject_re = re.compile(self.cf['reject'], re.IGNORECASE)
-    #     unbalanced_re = re.compile('\([^)]+$')
-    #     cleaned = []
-    #     for raw in lines:
-    #         if not reject_re.search(raw):
-    #             m = accept_re.match(raw)
-    #             if m:
-    #                 word = m.group(1).upper().replace('_', ' ')
-    #                 defn = m.group(2)
-    #                 if unbalanced_re.search(defn):
-    #                     defn += ')'
-    #                 if len(word + self.colon + defn) <= self.api.char_limit:
-    #                     cleaned.append(( word, defn ))
-    #             else:
-    #                 print("No match: {}".format(raw))
-    #     return cleaned
 
     def sine_temp(self):
         p = float(self.cf['t_period']) * 60.0 * 60.0
@@ -321,7 +292,6 @@ class RnnBot(Bot):
             return self.sine_temp()
         else:
             return self.rand_temp() 
-        
 
     def spectrum(self):
         sv = self.cf['spectrum'].split()
@@ -333,9 +303,6 @@ class RnnBot(Bot):
             t = low + (high - low) * (i / (steps - 1))
             output, title = self.generate(t)
             print(output)
-
-
-
 
     def logfile(self, ext):
         if hasattr(self, 'loop'):
