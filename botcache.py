@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 
-import os, os.path, glob, time, random
+import os, os.path, json, glob, time, random
 
-HISTORY = 'history.txt'
+HISTORY = 'history'
 CACHE_PATTERN = '*.log'
 
 class BotCache():
@@ -11,13 +11,33 @@ class BotCache():
 	def __init__(self, options):
 		self.dir = options['dir']
 		self.cache_max = options['cache_max']
-		self.histfile = os.path.join(self.dir, HISTORY)
+		if 'format' in options:
+			self.format = options['format']
+		else:
+			self.format = 'txt'
+		self.histfile = os.path.join(self.dir, HISTORY + '.' + self.format)
 		self.history = None
+
+	def read_items(self, fh):
+		if self.format == 'txt':
+			return [ l.rstrip() for l in fh.readlines() ]
+		else:
+			rawjson = fh.read()
+			if rawjson:
+				return json.loads(rawjson)
+			else:
+				return []
+
+	def write_items(self, fh, lines):
+		if self.format == 'txt':
+			fh.writelines([ l + '\n' for l in lines ])
+		else:
+			fh.write(json.dumps(lines, indent=4))
 
 	def load_history(self):
 		try:
 			with open(self.histfile, 'r') as cfh:
-				self.history = [ l.rstrip() for l in cfh.readlines() ]
+				self.history = self.read_items(cfh)
 				return self.history
 		except OSError as e:
 			return None
@@ -28,7 +48,7 @@ class BotCache():
 		else:
 			self.history.append(item)
 		with open(self.histfile, 'w') as cfh:
-			cfh.writelines([ l + '\n' for l in self.history])
+			self.write_items(cfh, self.history)
 		
 	def delete_history(self):
 		ts = str(time.time())
@@ -47,12 +67,14 @@ class BotCache():
 		# Returns the valid lines as a list
 
 		cache_files = glob.glob(os.path.join(self.dir, CACHE_PATTERN))
-		latest = max(cache_files, key=os.path.getctime)
-		with open(latest, 'r') as ch:
-			rawcache = [ l.rstrip() for l in ch.readlines() ]
-			self.cache = [ l for l in rawcache if not l in self.history and l[0] != '#' ]
-			return self.cache
-
+		if len(cache_files) > 0:
+			latest = max(cache_files, key=os.path.getctime)
+			with open(latest, 'r') as ch:
+				cache_items = self.read_items(ch)
+				self.cache = [ l for l in cache_items if not l in self.history and l[0] != '#' ]
+				return self.cache
+		else:
+			return []
 
 	def get(self):
 		"""Returns a cached entry. If there's nothing new in the cache,
@@ -79,30 +101,32 @@ class BotCache():
 
 
 
-def generate_stuff(d):
+def generate_stuff(d, format):
 	"""Generates a file of timestamped random stuff for testing"""
 	ts = str(time.time())
 	file = os.path.join(d, ts + '.log')
+	stuff = [ "# here are", "# some comments" ]
+	for i in range(random.randrange(2, 10)):
+		babble = ''.join([ random.choice('AGTC') for k in range(10) ])
+		stuff.append(ts + '.' + babble + '.' + str(i))
 	with open(file, 'w') as fh:
-		stuff = []
-		for i in range(random.randrange(2, 10)):
-			babble = ''.join([ random.choice('AGTC') for k in range(10) ])
-			stuff.append(ts + '.' + babble + '.' + str(i))
-		fh.writelines("# here are \n# some comments\n")
-		fh.writelines([ l + '\n' for l in stuff])
-	return stuff[0]
+		if format == 'txt':
+			fh.writelines([ l + '\n' for l in stuff])
+		else:
+			fh.write(json.dumps(stuff, indent=4))
+	return stuff[2] # it's ok if this knows which are comments
 
 
 
 
 if __name__ == '__main__':
-	cache = BotCache({ 'dir': './cache_test', 'cache_max': 8})
+	cache = BotCache({ 'dir': './cache_test', 'cache_max': 8, 'format': 'txt'})
 
 	from_cache = cache.get()
 	if from_cache:
 		print("cache> {}".format(from_cache))
 	else:
-		fresh = generate_stuff('./cache_test')
+		fresh = generate_stuff('./cache_test', cache.format)
 		print("fresh> {}".format(fresh))
 		cache.put(fresh)
 

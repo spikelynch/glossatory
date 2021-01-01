@@ -4,7 +4,7 @@
 from botclient import Bot
 from botcache import BotCache
 import torchrnn
-import time, math, random, os, os.path, re, sys, shutil
+import time, math, random, os, os.path, re, sys, shutil, json
 
 DEF_MIN = 10
 DEF_LOOP_MAX = 10
@@ -19,6 +19,12 @@ class RnnBot(Bot):
         self.ap.add_argument('-t', '--test', action='store_true', help="Test parser on RNN output")
         self.ap.add_argument('-p', '--pregen', default=None, help="Test parser on pre-generated output (file or directory)")
 
+    def configure(self):
+        super(RnnBot, self).configure()
+        if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
+            self.log_format = "json"
+        else:
+            self.log_format = "txt"
 
 
     def prepare(self, t):
@@ -35,10 +41,6 @@ class RnnBot(Bot):
             self.loop_max = int(self.cf['loop'])
         if 'minimum' in self.cf:
             self.min_length = self.cf['minimum']
-        if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
-            self.log_sep = "\n---\n" 
-        else:
-            self.log_sep = "\n" 
         self.options = {}
         if 'suppress' in self.cf or 'suppress_maybe' in self.cf:
             lipo = self.lipogram()
@@ -95,7 +97,7 @@ class RnnBot(Bot):
             self.loop = self.loop + 1
         self.notes.append("Result: '{}'".format(result))
         if self.notes:
-            self.write_debug(self.notes, '6.notes.txt')
+            self.write_debug(self.notes, '.notes.txt')
         return self.render(result)
 
     # Used in test mode: collects one batch and renders all of them
@@ -179,7 +181,7 @@ class RnnBot(Bot):
     # back into a WORD: definition pair
 
     def cacheparse(self, line):
-        return line
+        return line, ''
 
     # filter the rendered version of the parse results for api length
 
@@ -233,13 +235,16 @@ class RnnBot(Bot):
             timestamp = str(time.time())
             log = self.logfile('log')
             print("Log = {}".format(log))
+            loglines = [ "# temperature: {}".format(t), "# forbid: {}".format(self.forbid) ]
+            for l in lines:
+                r, t = self.render(l)
+                loglines.append(r)
             with open(log, 'wt') as f:
-                f.write("# temperature: {}\n".format(t))
-                if self.forbid:
-                    f.write("# forbid: {}\n".format(self.forbid))
-                for l in lines:
-                    r, t = self.render(l)
-                    f.write(r + self.log_sep)
+                if self.log_format == 'txt':
+                    f.writelines([ l + '\n' for l in loglines ])
+                else:
+                    f.write(json.dumps(loglines, indent=4))
+
         if 'filter' in self.cf and not (self.forbid or self.alliterate):
             print('writing')
             fre = re.compile(self.cf['filter'])
@@ -336,7 +341,11 @@ class RnnBot(Bot):
             cache = None
             if 'cache_max' in self.cf:
                 cmax = int(self.cf['cache_max'])
-                cache = BotCache({'dir': self.cf['logs'], 'cache_max': cmax})
+                cache = BotCache({
+                    'dir': self.cf['logs'],
+                    'cache_max': cmax,
+                    'format': self.log_format
+                    })
                 output = cache.get()
                 if output:
                     output, title = self.cacheparse(output)

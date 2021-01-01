@@ -9,26 +9,45 @@ DEF_MIN = 10
 DEFAULT_COLON = ': '
 DEFAULT_FILTER = 'filtered'
 
-# Note: extract a list of Latin abbreviations and feed them to punkt
+SENTENCE_MATCH = 15
+
 
 class AnatomyOfMelancholy(RnnBot):
+
+    # TODO - make this collect more stuff so it works better with caching
+
+    # problem - this now includes verses twice - once as verses, second time
+    # as sentences
+    #
+    # need to go through the sentences and remove things which are "like"
+    # the verses (though they won't be exactly the same)
 
     def tokenise(self, sample):
         # first pass - look for poems
         verses = self.scan_for_verse(sample)
         if verses:
             self.notes.append("got {} verses".format(len(verses)))
-            return [ re.sub(r'\[\d+\]', '', v) for v in verses ]
+            verses = [ re.sub(r'\[\d+\]', '', v) for v in verses ]
+        else:
+            verses = []
         # second pass - look for sentences
         text = re.sub(r'\[\d+\]', '', sample)
         text = re.sub("\r\n", ' ', text)
         punkt_param = PunktParameters()
         punkt_param.abbrev_types = set(self.cf['abbreviations'])
         tokenizer = PunktSentenceTokenizer(punkt_param)
-        sents = tokenizer.tokenize(text)
-        sents = sents[1:-1]
-        self.notes.append("got {} sentences".format(len(sents)))
-        return sents[1:-1]
+        sentences = tokenizer.tokenize(text)
+        sentences = sentences[1:-1]
+        self.notes.append("got {} sentences".format(len(sentences)))
+        # remove any sentences which we already found as part of verses
+        for s in sentences:
+            matches = [ v for v in verses if s[:SENTENCE_MATCH] in v ]
+            if matches:
+                self.notes.append("found sentence {} in verses {}".format(s, matches))
+                sentences.remove(s)
+        verses.extend(sentences)
+        return verses
+        #return sents[1:-1]
 
     # this assumes that the input has line breaks and has
     # not had its page numbers stripped out
@@ -82,6 +101,8 @@ class AnatomyOfMelancholy(RnnBot):
                 cleaned.append(raw)
         return cleaned
 
+
+    # note: select doesn't get called any more
     def select(self, lines):
         if lines:
             return random.choice(lines)
