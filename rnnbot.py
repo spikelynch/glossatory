@@ -50,12 +50,11 @@ class RnnBot(Bot):
         else:
             self.forbid = None
         self.alliterate = None
-        if not self.forbid:
-            if 'alliterate' in self.cf or 'alliterate_maybe_p' in self.cf:
-                alliterate = self.alliterate_maybe()
-                if alliterate:
-                    self.options['alliterate'] = alliterate
-                    print("Alliterate: " + alliterate)
+        if 'alliterate' in self.cf or 'alliterate_maybe_p' in self.cf:
+            alliterate = self.alliterate_maybe()
+            if alliterate:
+                self.options['alliterate'] = alliterate
+                print("Alliterate: " + alliterate)
 
     def sample(self):
         if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
