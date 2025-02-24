@@ -71,7 +71,7 @@ class BotCache():
 			latest = max(cache_files, key=os.path.getctime)
 			with open(latest, 'r') as ch:
 				cache_items = self.read_items(ch)
-				self.cache = [ l for l in cache_items if not l in self.history and l[0] != '#' ]
+				self.cache = [ l for l in cache_items if not l in self.history and (len(l) > 0 and l[0] != '#') ]
 				return self.cache
 		else:
 			return []

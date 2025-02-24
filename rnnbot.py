@@ -208,16 +208,23 @@ class RnnBot(Bot):
         return forbid
 
     def alliterate_maybe(self):
+        """
+        Note: call this after alliterate_maybe so that it can remove
+        any letters in self.forbid from its options
+        """
         self.alliterate = None
+        alliterate = self.cf['alliterate']
+        if self.forbid:
+            alliterate = ''.join(list(set(alliterate) - set(self.forbid)))
         if 'alliterate_maybe_p' in self.cf:
             k = float(self.cf['alliterate_maybe_p'])
             if random.random() < k:
-                self.alliterate = random.choice(self.cf['alliterate']) 
+                self.alliterate = random.choice(alliterate) 
                 return self.alliterate
             else:
                 return None
         else:
-            self.alliterate = random.choice(self.cf['alliterate']) 
+            self.alliterate = random.choice(alliterate) 
             return self.alliterate
 
     # Writes a complete log of all output if 'logs' is defined.
@@ -358,6 +365,8 @@ class RnnBot(Bot):
             if output:
                 if 'content_warning' in self.cf:
                     options['spoiler_text'] = self.cf['content_warning'].format(title)
+                if 'visibility' in self.cf:
+                    options['visibility'] = self.cf['visibility']
                 self.post(output, options)
             else:
                 print("Something went wrong")
