@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-from rnnbot import RnnBot
+from rnnbot.rnbot import RnnBot
 from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
-import torchrnn
 import re, random
 
 DEF_MIN = 10
