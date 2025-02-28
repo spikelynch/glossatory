@@ -1,9 +1,9 @@
 
 #!/usr/bin/env python
 
-from botclient import Bot
-from botcache import BotCache
-import torchrnn
+from botclient.botclient import Bot
+from botclient.botcache import BotCache
+from rnnbot.torchrnn import TorchRNN
 import time, math, random, os, os.path, re, sys, shutil, json
 
 DEF_MIN = 10
@@ -25,6 +25,7 @@ class RnnBot(Bot):
             self.log_format = "json"
         else:
             self.log_format = "txt"
+        self.torchrnn = TorchRNN(self.cf['torchrnn'], self.cf['model'])
 
 
     def prepare(self, t):
@@ -58,24 +59,22 @@ class RnnBot(Bot):
 
     def sample(self):
         if 'sample_method' in self.cf and self.cf['sample_method'] == 'text':
-            print("Sampling using text")
-            self.raw_rnn = torchrnn.generate_text(
+            self.raw_rnn = self.torchrnn.generate_text(
                 temperature=self.temperature,
-                model=self.cf['model'],
                 length=self.cf['sample'],
                 opts=self.options
             )
         else:
-            self.raw_rnn = torchrnn.generate_lines(
+            self.raw_rnn = self.torchrnn.generate_lines(
                 n=self.cf['sample'],
                 temperature=self.temperature,
-                model=self.cf['model'],
                 max_length=self.max_length,
                 min_length=self.min_length,
                 opts=self.options
             )
 
         return self.raw_rnn
+
 
 
 
