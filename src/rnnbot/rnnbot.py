@@ -25,7 +25,10 @@ class RnnBot(Bot):
             self.log_format = "json"
         else:
             self.log_format = "txt"
-        self.torchrnn = TorchRNN(self.cf['model_dir'], self.cf['model'])
+        if 'torch_script' in self.cf:
+            self.torchrnn = TorchRNN(self.cf['model_dir'], self.cf['model'], self.cf['torch_script'])
+        else:
+            self.torchrnn = TorchRNN(self.cf['model_dir'], self.cf['model'])
 
 
     def prepare(self, t):
