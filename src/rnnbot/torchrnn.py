@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-# this needs to be updated to use docker (permissions?) and probably 
-# moved into rnnbot
-
+import argparse
 import subprocess
 import os
 import signal
@@ -72,3 +70,16 @@ class TorchRNN():
         except subprocess.TimeoutExpired:
             os.killpg(os.getpgid(p.pid), signal.SIGTERM)
         return ""
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument('-c', '--command', default="RNN command")
+    ap.add_argument('-m', '--model', type=str)
+    ap.add_argument('-t', '--temperature', type=float, default=0.5)
+    ap.add_argument('-l', '--lines', type=int, default=10)
+    args = ap.parse_args()
+    t = TorchRNN(args.command, args.model)
+    lines = t.generate_lines(temperature=args.temperature, n=args.line)
+    for line in lines:
+        print(line)
+
