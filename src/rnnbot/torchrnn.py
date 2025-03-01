@@ -61,7 +61,6 @@ class TorchRNN():
         try:
             p = subprocess.Popen(
                 cmd,
-                cwd=TORCHRNN,
                 start_new_session=True,
                 stdout=subprocess.PIPE
             )
@@ -79,7 +78,7 @@ if __name__ == "__main__":
     ap.add_argument('-l', '--lines', type=int, default=10)
     args = ap.parse_args()
     t = TorchRNN(args.command, args.model)
-    lines = t.generate_lines(temperature=args.temperature, n=args.line)
+    lines = t.generate_lines(temperature=args.temperature, n=args.lines)
     for line in lines:
         print(line)
 
