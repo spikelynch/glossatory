@@ -25,7 +25,7 @@ class RnnBot(Bot):
             self.log_format = "json"
         else:
             self.log_format = "txt"
-        self.torchrnn = TorchRNN(self.cf['torchrnn'], self.cf['model'])
+        self.torchrnn = TorchRNN(self.cf['model_dir'], self.cf['model'])
 
 
     def prepare(self, t):
