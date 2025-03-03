@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
 import argparse
+from pathlib import Path
 import subprocess
 import os
 import signal
 import sys
 
+DOCKER_IMAGE="torchrnn"
+TH="/root/torch/install/bin/th"
+TORCHRNN="/root/torch-rnn"
+DEFAULT_SCRIPT="sample.lua"
 
 SAMPLE_SIZE = 5
 DEFAULT_LINE = 140
@@ -15,8 +20,13 @@ DEFAULT_MAXTIME = 60 * 60
 
 class TorchRNN():
 
-    def __init__(self, cmd, model):
-        self.cmd = cmd.split()
+    def __init__(self, model_dir, model, script=DEFAULT_SCRIPT):
+        self.cmd = [
+            "docker", "--rm", "-it",
+            "--volume", f"{model_dir}:/models",
+            DOCKER_IMAGE,
+            TH, f"{TORCHRNN}/{script}", "-gpu", "-1",
+        ]
         self.model = model
 
 
@@ -38,7 +48,7 @@ class TorchRNN():
     def run_sample(self, temperature, start, nchars, opts):
         cmd = self.cmd[:]
         args = {}
-        args['-checkpoint'] = self.model
+        args['-checkpoint'] = f"/models/{self.model}"
         args['-temperature'] = str(temperature)
         args['-length'] = str(nchars)
         args['-start_text'] = start
@@ -58,10 +68,11 @@ class TorchRNN():
         DEFAULT_MAXTIME, and then send a kill signal to it and any child processes
         if it expires.
         """
+        print(cmd)
+        sys.exit()
         try:
             p = subprocess.Popen(
                 cmd,
-                cwd=TORCHRNN,
                 start_new_session=True,
                 stdout=subprocess.PIPE
             )
@@ -73,13 +84,13 @@ class TorchRNN():
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument('-c', '--command', default="RNN command")
+    ap.add_argument('-d', '--dir', type=Path)
     ap.add_argument('-m', '--model', type=str)
     ap.add_argument('-t', '--temperature', type=float, default=0.5)
     ap.add_argument('-l', '--lines', type=int, default=10)
     args = ap.parse_args()
-    t = TorchRNN(args.command, args.model)
-    lines = t.generate_lines(temperature=args.temperature, n=args.line)
+    t = TorchRNN(args.dir, args.model)
+    lines = t.generate_lines(temperature=args.temperature, n=args.lines)
     for line in lines:
         print(line)
 

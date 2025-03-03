@@ -136,7 +136,7 @@ wheels = [
 
 [[package]]
 name = "mastodon-py"
-version = "2.0.0"
+version = "2.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "blurhash" },
@@ -146,9 +146,9 @@ dependencies = [
     { name = "python-magic-bin", marker = "platform_system == 'Windows'" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/c0/110aad2e33a4036fb905bc2f14555d48a57511385bc217ec843451e8ef44/mastodon_py-2.0.0.tar.gz", hash = "sha256:34f45aee283bda437f16d512d9a5c7f2cf39b427bff7282ac0a82339d65ed8c7", size = 11064940 }
+sdist = { url = "https://files.pythonhosted.org/packages/d4/40/8f962b2d1782fd097ea45a344094df7d56f980f1d64c62de0bfa1ef5b0fc/mastodon_py-2.0.1.tar.gz", hash = "sha256:f0a9cf59071347c7ff2ee49487d2520ca661f349f369b68845bdf3e43db1fff3", size = 10988936 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/c1/5b76c5c0ffe3b2454264c56899f58dd293049b9f17d78d34b52474187e35/Mastodon.py-2.0.0-py3-none-any.whl", hash = "sha256:b2f08ffc19bf93db2cd2b7f11d785e847cd09d20127004de1aa089d20d402478", size = 108221 },
+    { url = "https://files.pythonhosted.org/packages/cf/d7/632b8b14a13eb33a9fcc5c3354f878fa39dfb5f51ef6283b24fce84c5796/mastodon_py-2.0.1-py3-none-any.whl", hash = "sha256:5bb543ecbd7526bd50675d5d617ec04caa6b10d4002454cbf5641ad612723455", size = 108485 },
 ]
 
 [[package]]
@@ -264,7 +264,7 @@ wheels = [
 [[package]]
 name = "rnnbot"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "botclient" },
 ]
