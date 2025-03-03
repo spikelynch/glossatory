@@ -1,12 +1,19 @@
 [project]
 name = "rnnbot"
 version = "0.1.0"
-description = "Add your description here"
+description = "A library for running bots powered by the old lua Torch RNN"
 readme = "README.md"
+authors = [
+    { name = "Mike Lynch", email = "m.lynch@sydney.edu.au" }
+]
 requires-python = ">=3.9"
 dependencies = [
     "botclient",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.uv.sources]
 botclient = { git = "https://github.com/spikelynch/botclient" }
