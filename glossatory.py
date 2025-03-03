@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from rnnbot import RnnBot
+from rnnbot.rnnbot import RnnBot
 import re
 
 DEFAULT_COLON = ': '
