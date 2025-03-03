@@ -30,11 +30,11 @@ class TorchRNN():
         self.model = model
 
 
-    def generate_lines(self, temperature=1.0, n=1, min_length=1, max_length=DEFAULT_LINE, opts={}):
+    def generate_lines(self, temperature=1.0, n=1, min_length=1, max_length=DEFAULT_LINE, sample_size=SAMPLE_SIZE, opts={}):
         lines = []
         while len(lines) < n:
             print("Sampling...")
-            text = self.run_sample(temperature, '', max_length * SAMPLE_SIZE, opts).decode('utf-8')
+            text = self.run_sample(temperature, '', max_length * sample_size, opts).decode('utf-8')
             ls = text.split('\n')[1:]
             for l in ls:
                 if not l or len(l) > max_length or len(l) < min_length:
