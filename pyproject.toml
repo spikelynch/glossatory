@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.9"
 dependencies = [
     "botclient",
+    "nltk>=3.9.1",
 ]
 
 [build-system]

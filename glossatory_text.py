@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from textbot import TextBot
+from botclient.textbot import TextBot
 import re
 
 DEFAULT_COLON = ': '
