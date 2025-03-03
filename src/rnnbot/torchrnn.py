@@ -22,7 +22,7 @@ class TorchRNN():
 
     def __init__(self, model_dir, model, script=DEFAULT_SCRIPT):
         self.cmd = [
-            "docker", "--rm", "-it",
+            "docker", "run", "--rm", "-it",
             "--volume", f"{model_dir}:/models",
             DOCKER_IMAGE,
             TH, f"{TORCHRNN}/{script}", "-gpu", "-1",
@@ -33,12 +33,15 @@ class TorchRNN():
     def generate_lines(self, temperature=1.0, n=1, min_length=1, max_length=DEFAULT_LINE, opts={}):
         lines = []
         while len(lines) < n:
+            print("Sampling...")
             text = self.run_sample(temperature, '', max_length * SAMPLE_SIZE, opts).decode('utf-8')
             ls = text.split('\n')[1:]
             for l in ls:
                 if not l or len(l) > max_length or len(l) < min_length:
                     continue
                 lines.append(l)
+            nlines = len(lines)
+            print(f"Got {nlines} lines")
         return lines[:n]
 
     def generate_text(self, temperature=1.0, length=DEFAULT_LENGTH, opts={}):
@@ -54,7 +57,7 @@ class TorchRNN():
         args['-start_text'] = start
         if opts:
             for k, v in opts.items():
-                cmd.append('--' + k)
+                cmd.append('-' + k)
                 cmd.append(v)
         for k, v in args.items():
             cmd.append(k)
@@ -69,7 +72,6 @@ class TorchRNN():
         if it expires.
         """
         print(cmd)
-        sys.exit()
         try:
             p = subprocess.Popen(
                 cmd,
@@ -80,6 +82,7 @@ class TorchRNN():
             return data
         except subprocess.TimeoutExpired:
             os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+            print("timed out!")
         return ""
 
 if __name__ == "__main__":
