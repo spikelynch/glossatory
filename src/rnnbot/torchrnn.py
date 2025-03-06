@@ -22,7 +22,7 @@ class TorchRNN():
 
     def __init__(self, model_dir, model, script=DEFAULT_SCRIPT):
         self.cmd = [
-            "docker", "run", "--rm", "-it",
+            "/usr/bin/docker", "run", "-t", "--rm", 
             "--volume", f"{model_dir}:/models",
             DOCKER_IMAGE,
             TH, f"{TORCHRNN}/{script}", "-gpu", "-1",
@@ -42,6 +42,9 @@ class TorchRNN():
                 lines.append(l)
             nlines = len(lines)
             print(f"Got {nlines} lines")
+            if nlines == 0:
+                print(f"Raw = '{text}'")
+                sys.exit(-1)
         return lines[:n]
 
     def generate_text(self, temperature=1.0, length=DEFAULT_LENGTH, opts={}):

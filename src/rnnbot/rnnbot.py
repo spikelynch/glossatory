@@ -75,7 +75,6 @@ class RnnBot(Bot):
                 min_length=self.min_length,
                 opts=self.options
             )
-
         return self.raw_rnn
 
 
@@ -154,11 +153,15 @@ class RnnBot(Bot):
         cleaned = []
         for raw in lines:
             if not reject_re.search(raw):
+                print(f"checking '{raw}':")
                 m = accept_re.match(raw)
                 if m:
+                    print(f"matched '{raw}")
                     cleaned.append(raw)
+                else:
+                    print("rejected")
         if not cleaned:
-            print("Nothing passed the filters!")
+            print("Cleaned is empty")
             sys.exit(-1)
         return cleaned
 
