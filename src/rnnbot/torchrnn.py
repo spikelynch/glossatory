@@ -74,7 +74,6 @@ class TorchRNN():
         DEFAULT_MAXTIME, and then send a kill signal to it and any child processes
         if it expires.
         """
-        print(cmd)
         try:
             p = subprocess.Popen(
                 cmd,

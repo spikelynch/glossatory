@@ -153,15 +153,11 @@ class RnnBot(Bot):
         cleaned = []
         for raw in lines:
             if not reject_re.search(raw):
-                print(f"checking '{raw}':")
                 m = accept_re.match(raw)
                 if m:
-                    print(f"matched '{raw}")
                     cleaned.append(raw)
-                else:
-                    print("rejected")
         if not cleaned:
-            print("Cleaned is empty")
+            print("No positive matches, bailing out")
             sys.exit(-1)
         return cleaned
 
