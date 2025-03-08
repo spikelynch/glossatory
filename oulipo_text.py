@@ -11,12 +11,18 @@ class OulipoGlossatory(TextBot):
     # a term and definition
 
     def get_next(self):
-        line = super(OulipoGlossatory, self).get_next()
-        filter = self.cf['filter']
-        oulipo_re = re.compile(filter)
-        m = oulipo_re.match(line)
-        if m:
-            return ( m.group(1), m.group(2) )
+        try:
+            line = super(OulipoGlossatory, self).get_next()
+            filter = self.cf['filter']
+            oulipo_re = re.compile(filter)
+            m = oulipo_re.match(line)
+            if m:
+                return ( m.group(1), m.group(2) )
+            else:
+                return None
+        except Exception as e:
+            print("Ran out of lines")
+            return None
 
 
 if __name__ == '__main__':
